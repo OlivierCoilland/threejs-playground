@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Earth</title>
+
+    <link href="node_modules/normalize.css/normalize.css" rel="stylesheet" />
+
+    <style type="text/css">
+        body {
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas"></div>
+
+    <script src="node_modules/three/three.min.js"></script>
+    <script src="node_modules/three/examples/js/Detector.js"></script>
+    <script src="node_modules/three/examples/js/controls/TrackballControls.js"></script>
+    <script>
+
+        console.log(Detector.webgl);
+
+        var loader = new THREE.TextureLoader();
+        var controls;
+
+        var scene = new THREE.Scene();
+
+        var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 100);
+        camera.position.set(0, 0, 5);
+
+        addControls();
+        addAxisHelper();
+        addEarth();
+        addStars();
+        addLight();
+
+        var renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById("canvas").appendChild(renderer.domElement);
+
+        var start = function() {
+            requestAnimationFrame(start);
+            controls.update();
+            renderer.render(scene, camera);
+        };
+        start();
+
+        function addControls() {
+            controls = new THREE.TrackballControls(camera);
+            controls.rotateSpeed = 2.0;
+            controls.zoomSpeed = 2.0;
+            controls.panSpeed = 1;
+            controls.noZoom = false;
+            controls.noPan = false;
+            controls.staticMoving = true;
+            controls.dynamicDampingFactor = 0.5;
+        }
+
+        function addAxisHelper() {
+            var axisHelper = new THREE.AxisHelper(5);
+            scene.add(axisHelper);
+        }
+
+        function addEarth() {
+            loader.load('img/earthmap.jpg', function(texture) {
+                var geometry = new THREE.SphereGeometry(1, 32, 32);
+                var material = new THREE.MeshPhongMaterial({
+                    map: texture
+                });
+                var mesh = new THREE.Mesh(geometry, material);
+                scene.add(mesh);
+
+                loader.load('img/earthbump.jpg', function(texture) {
+                    material.bumpMap = texture,
+                    material.bumpScale = 0.05
+                });
+
+                loader.load('img/earthspec.jpg', function(texture) {
+                    material.specularMap = texture,
+                    material.specular = new THREE.Color('grey')
+                });
+            });
+        }
+
+        function addStars() {
+            loader.load('img/galaxy_starfield.png', function(texture) {
+                var geometry = new THREE.SphereGeometry(90, 32, 32);
+                var material = new THREE.MeshBasicMaterial({
+                    map: texture,
+                    side: THREE.BackSide
+                });
+                var mesh = new THREE.Mesh(geometry, material);
+                scene.add(mesh);
+            });
+        }
+
+        function addLight() {
+            var light = new THREE.AmbientLight(0xcccccc);
+            scene.add(light);
+            var light = new THREE.DirectionalLight(0xcccccc, 0.5);
+            light.position.set(5, 0, 0);
+            scene.add(light);
+        }
+
+    </script>
+</body>
+</html>

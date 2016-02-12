@@ -1,0 +1,7 @@
+{
+  "name": "threejs-playground",
+  "dependencies": {
+    "normalize.css": "^3",
+    "three": "0.73"
+  }
+}
