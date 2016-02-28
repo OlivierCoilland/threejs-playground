@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Labyrinth</title>
+
+    <link href="node_modules/normalize.css/normalize.css" rel="stylesheet" />
+
+    <style type="text/css">
+        body {
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas"></div>
+
+    <script src="node_modules/three/three.min.js"></script>
+    <script src="node_modules/three/examples/js/Detector.js"></script>
+    <script>
+
+        console.log(Detector.webgl);
+
+        // Size of labyrinth.
+        var TAU = 3;
+        var SIZE = 4 * TAU + 3;
+
+        var scene = new THREE.Scene();
+
+        var camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 50);
+        var PLAYER_Z = 0.5;
+        camera.position.set(SIZE / 2, SIZE / 2, PLAYER_Z);
+        camera.up.set(0, 0, 1); // Default "up" is along y axis.
+        camera.lookAt(new THREE.Vector3(camera.position.x, 0, PLAYER_Z));
+
+        addGround();
+        addLabyrinth();
+        addControls();
+
+        var renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas').appendChild(renderer.domElement);
+
+        // Rendering loop.
+        var start = function() {
+            requestAnimationFrame(start);
+            renderer.render(scene, camera);
+        };
+        start();
+
+        function addGround() {
+            var geometry = new THREE.PlaneGeometry(SIZE, SIZE);
+            var material = new THREE.MeshBasicMaterial({ color: 0x55cc55 });
+            var plane = new THREE.Mesh(geometry, material);
+            plane.position.x += SIZE / 2;
+            plane.position.y += SIZE / 2;
+            scene.add(plane);
+        }
+
+        function addLabyrinth() {
+            var map = [];
+
+            // Initialization.
+            for (var i = 0; i < SIZE; i++) {
+                map[i] = [];
+                for (var j = 0; j < SIZE; j++)
+                    map[i][j] = 0;
+            }
+
+            // Concentric structure.
+            for (var x = 1; x < SIZE; x += 2) {
+                for (var y = x; y < SIZE - x; y++) {
+                    map[x][y] = 1;
+                    map[SIZE - 1 - x][y] = 1;
+                    map[y][x] = 1;
+                    map[y][SIZE - 1 - x] = 1;
+                }
+            }
+
+            // Dumb paths.
+            for (var i = 0; i <= TAU; i++) {
+                var min = 2 * (i + 1);
+                var max = SIZE - 1 - min;
+                var a = rand(min, max);
+                var b = rand(0, 1) ? SIZE - 1 - 2 * i : 2 * i;
+                var r = rand(0, 1);
+                var x = r * a + non(r) * b;
+                var y = non(r) * a + r * b;
+                map[x][y] = 1;
+            }
+
+            // logMap();
+
+            // Inclusive rand.
+            function rand(min, max) {
+                return Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+
+            function non(b) {
+                return (b + 1) % 2;
+            }
+
+            function logMap() {
+                var log = '';
+                for (var j = 0; j < SIZE; j++) {
+                    for (var i = 0; i < SIZE; i++) {
+                        log += map[i][j] + ' ';
+                    }
+                    log += '\n';
+                }
+                console.log(log);
+            }
+
+            // Dumb building.
+            var geometry = new THREE.PlaneGeometry(1, 1);
+            for (var i = 0; i < SIZE - 1; i++) {
+                for (var j = 0; j < SIZE; j++) {
+                    if (map[j][i] != map[j][i + 1]) {
+                        var material = new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff, side: THREE.DoubleSide });
+                        var plane = new THREE.Mesh(geometry, material);
+                        plane.position.x = j + 1 / 2;
+                        plane.position.y = i + 1;
+                        plane.position.z = 1 / 2;
+                        plane.rotation.x = Math.PI / 2;
+                        scene.add(plane);
+                    }
+                    if (map[i][j] != map[i + 1][j]) {
+                        var material = new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff, side: THREE.DoubleSide });
+                        var plane = new THREE.Mesh(geometry, material);
+                        plane.position.x = i + 1;
+                        plane.position.y = j + 1 / 2;
+                        plane.position.z = 1 / 2;
+                        plane.rotation.y = Math.PI / 2;
+                        scene.add(plane);
+                    }
+                }
+            }
+        }
+
+        function addControls() {
+            var ROTATION_SPEED = 0.05;
+            var FORWARD_STEP = 1500;
+
+            window.addEventListener('keydown', function(event) {
+                var keyCode = event.keyCode;
+                if (keyCode == 39) { // Right
+                    camera.rotation.y += ROTATION_SPEED;
+                    event.preventDefault();
+                } else if (keyCode == 37) { // Left
+                    camera.rotation.y -= ROTATION_SPEED;
+                    event.preventDefault();
+                } else if (keyCode == 38) { // Up
+                    var direction = camera.getWorldDirection();
+                    camera.position.x += Math.round(100 * direction.x) / FORWARD_STEP;
+                    camera.position.y += Math.round(100 * direction.y) / FORWARD_STEP;
+                    event.preventDefault();
+                } else if (keyCode == 40) { // Down
+                    var direction = camera.getWorldDirection();
+                    camera.position.x -= Math.round(100 * direction.x) / FORWARD_STEP;
+                    camera.position.y -= Math.round(100 * direction.y) / FORWARD_STEP;
+                    event.preventDefault();
+                } else if (keyCode == 85) { // U
+                    camera.position.z += 1;
+                    event.preventDefault();
+                } else if (keyCode == 68) { // D
+                    camera.position.z -= 1;
+                    event.preventDefault();
+                }
+            }, false);
+        }
+    </script>
+</body>
+</html>
