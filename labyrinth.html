@@ -28,6 +28,9 @@
         var TAU = 3;
         var SIZE = 4 * TAU + 3;
 
+        var ROTATION_SPEED = 0.05;
+        var FORWARD_STEP = 1500;
+
         var scene = new THREE.Scene();
 
         var camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 50);
@@ -43,6 +46,9 @@
         var renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('canvas').appendChild(renderer.domElement);
+
+        var raycaster = new THREE.Raycaster();
+        raycaster.far = 0.5;
 
         // Rendering loop.
         var start = function() {
@@ -141,9 +147,6 @@
         }
 
         function addControls() {
-            var ROTATION_SPEED = 0.05;
-            var FORWARD_STEP = 1500;
-
             window.addEventListener('keydown', function(event) {
                 var keyCode = event.keyCode;
                 if (keyCode == 39) { // Right
@@ -154,13 +157,11 @@
                     event.preventDefault();
                 } else if (keyCode == 38) { // Up
                     var direction = camera.getWorldDirection();
-                    camera.position.x += Math.round(100 * direction.x) / FORWARD_STEP;
-                    camera.position.y += Math.round(100 * direction.y) / FORWARD_STEP;
+                    moveCameraIfAllowed(direction);
                     event.preventDefault();
                 } else if (keyCode == 40) { // Down
-                    var direction = camera.getWorldDirection();
-                    camera.position.x -= Math.round(100 * direction.x) / FORWARD_STEP;
-                    camera.position.y -= Math.round(100 * direction.y) / FORWARD_STEP;
+                    var direction = camera.getWorldDirection().negate();
+                    moveCameraIfAllowed(direction);
                     event.preventDefault();
                 } else if (keyCode == 85) { // U
                     camera.position.z += 1;
@@ -170,6 +171,15 @@
                     event.preventDefault();
                 }
             }, false);
+        }
+
+        function moveCameraIfAllowed(direction) {
+            raycaster.set(camera.position, direction);
+            var intersects = raycaster.intersectObjects(scene.children);
+            if (!intersects.length) {
+                camera.position.x += Math.round(100 * direction.x) / FORWARD_STEP;
+                camera.position.y += Math.round(100 * direction.y) / FORWARD_STEP;
+            }
         }
     </script>
 </body>
